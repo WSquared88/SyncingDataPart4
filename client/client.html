@@ -4,16 +4,229 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         "use strict";
+    
+        var canvas;
+        var ctx;
+		var sendBufferCanvas;
+		var sendBufferCtx;
+        var socket;
+		var squares = {};
+		var animationID;
+		var wIsPressed = false;
+		var aIsPressed = false;
+		var sIsPressed = false;
+		var dIsPressed = false;
+
+        var square = {
+            id: new Date().getTime(),
+			time: new Date().getTime(),
+            x: Math.random()*400,
+            y: Math.random()*400,
+            height: 100,
+            width: 100,
+			color: "rgba("+Math.floor(Math.random()*255)+", "+Math.floor(Math.random()*255)+", "+Math.floor(Math.random()*255)+", 1)",
+			image: 0
+        };
 		
-		var socket;
-		
-		function init()
+		function redraw()
 		{
-			socket = io.connect();
+			ctx.clearRect(0,0,canvas.width, canvas.height);
+			var key = Object.keys(squares);
+			console.dir("squares "+squares);
+			
+			for(var i = 0;i<key.length;i++)
+			{
+				var image = new Image();
+				console.dir("x pos "+squares[key[i]].x);
+				var xPos = squares[key[i]].x;
+				var yPos = squares[key[i]].y;
+				var sqrWidth = squares[key[i]].width;
+				var sqrHeight = squares[key[i]].height;
+				
+				image.src = squares[key[i]].image;
+				
+				image.onload = function()
+				{
+					var log = Object.keys(squares);
+					console.log("sqr "+squares[log[i]]);
+					console.log("array " +squares);
+					console.log("image x " +image.x);
+					ctx.save();
+					ctx.globalCompositeOperation = "source-over";
+					//ctx.drawImage(image, xPos, image.y, sqrWidth, sqrHeight);
+					ctx.restore();
+				};
+				
+				
+				//ctx.drawImage(image, squares[key[i]].x, squares[key[i]].y, squares[key[i]].width, squares[key[i]].height);
+				//ctx.fillStyle = squares[key[i]].color;
+				//ctx.fillRect(squares[key[i]].x, squares[key[i]].y, squares[key[i]].width, squares[key[i]].height);
+			}
 		}
 		
-		window.onload = init;
-	</script>
+		function update()
+		{
+			animationID = requestAnimationFrame(update);
+			if(wIsPressed)
+			{
+				square.y -= 1;
+			}
+			
+			if(aIsPressed)
+			{
+				square.x -= 1;
+			}
+			
+			if(sIsPressed)
+			{
+				square.y += 1;
+			}
+			
+			if(dIsPressed)
+			{
+				square.x += 1;
+			}
+			
+			if(wIsPressed || aIsPressed || sIsPressed || dIsPressed)
+			{
+				sendPos();
+			}
+		}
+		
+		function sendPos()
+		{
+			//sendBufferCanvas = document.createElement("canvas");
+			//sendBufferCanvas.height = square.height;
+			//sendBufferCanvas.width = square.width = square.width;
+			//sendBufferCtx = sendBufferCanvas.getContext("2d");
+			//
+			//ctx.fillRect(square.x, square.y, square.width, square.height);
+			//sendBufferCtx.fillRect(0, 0, square.width, square.height);
+			
+			var message = 
+			{
+				message: "",
+				id: square.id,
+				data: square,
+				time: new Date().getTime(),
+				image: sendBufferCanvas.toDataURL()
+			};
+			
+			//socket.emit("updatePos", message);
+		}
+        
+        function init() 
+		{
+            canvas = document.querySelector("#canvas");
+            ctx = canvas.getContext("2d");
+			
+			socket = io.connect();
+			socket.on("connect", function()
+			{
+				sendBufferCanvas = document.createElement("canvas");
+				sendBufferCanvas.height = square.height;
+				sendBufferCanvas.width = square.width;
+				sendBufferCtx = sendBufferCanvas.getContext("2d");
+				
+				ctx.fillStyle = square.color;
+				sendBufferCtx.fillStyle = square.color;
+				ctx.fillRect(square.x, square.y, square.width, square.height);
+				sendBufferCtx.fillRect(0, 0, square.width, square.height);
+				square.image = sendBufferCanvas.toDataURL();
+				console.log(square);
+			
+				var message = 
+				{
+					message: "",
+					id: square.id,
+					data: square
+				};
+				
+				socket.emit("init", message);
+			});
+			
+			socket.on("allSquares", function(data)
+			{	
+				var image = new Image();
+				console.log("drawing "+data.data.x);
+				image.onload = function()
+				{
+					//var log = Object.keys(squares);
+					//console.log("sqr "+squares[log[i]]);
+					//console.log("array " +squares);
+					//console.log("image x " +image.x);
+					ctx.save();
+					ctx.globalCompositeOperation = "source-over";
+					ctx.drawImage(image, data.data.x, data.data.y, data.data.width, data.data.height);
+					ctx.restore();
+				};
+				
+				image.src = data.data.image;
+			});
+			
+			document.onkeydown = function(e)
+			{
+				var charCode = String.fromCharCode(e.keyCode);
+				if(charCode == "W")
+				{
+					wIsPressed = true;
+				}
+				
+				if(charCode == "A")
+				{
+					aIsPressed = true;
+				}
+				
+				if(charCode == "S")
+				{
+					sIsPressed = true;
+				}
+				
+				if(charCode == "D")
+				{
+					dIsPressed = true;
+				}
+			};
+			
+			document.onkeyup = function(e)
+			{
+				var charCode = String.fromCharCode(e.keyCode);
+				if(charCode == "W")
+				{
+					wIsPressed = false;
+				}
+				
+				if(charCode == "A")
+				{
+					aIsPressed = false;
+				}
+				
+				if(charCode == "S")
+				{
+					sIsPressed = false;
+				}
+				
+				if(charCode == "D")
+				{
+					dIsPressed = false;
+				}
+			};
+			
+			requestAnimationFrame(update);
+        }
+
+    window.onload = init;
+	window.onbeforeunload = function()
+	{
+		var message = 
+		{
+			message: "",
+			id: square.id,
+			data: ""
+		};
+		socket.emit("leaving", message);
+	};
+    </script>
 </head>
 <body>
     <canvas id="canvas" height="500" width="500">Please use an HTML 5 browser</canvas>

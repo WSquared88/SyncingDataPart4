@@ -1,0 +1,24 @@
+{
+  "name": "syncing_data_part4",
+  "version": "1.0.0",
+  "description": "streaming images across a network",
+  "main": "src/index.js",
+  "dependencies": {
+    "socket.io": "^1.4.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+	"start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WSquared88/SyncingDataPart4.git"
+  },
+  "author": "Wes Waligora",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/WSquared88/SyncingDataPart4/issues"
+  },
+  "homepage": "https://github.com/WSquared88/SyncingDataPart4#readme"
+}
